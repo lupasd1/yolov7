@@ -17,7 +17,7 @@ from detectron2.layers import paste_masks_in_image
 
 
 import os
-data_path = os.path.abspath('hyp.scratch.mask.yaml')
+data_path = os.path.abspath('data/hyp.scratch.mask.yaml')
 data_path = data_path.replace("\\", "/")
 
 torch_model = os.path.abspath('tools/yolov7-mask.pt')
@@ -31,10 +31,7 @@ model = weights['model']
 model = model.half().to(device)
 _ = model.eval()
 
-test_image = os.path.abspath('tools/test6.png')
-test_image = torch_model.replace("\\", "/")
-
-image = cv2.imread(test_image)  # 504x378 image
+image = cv2.imread('./tools/test6.png')  # 504x378 image
 image = letterbox(image, 640, stride=64, auto=True)[0]
 image_ = image.copy()
 image = transforms.ToTensor()(image)
