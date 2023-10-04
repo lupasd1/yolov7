@@ -15,21 +15,26 @@ from detectron2.structures import Boxes
 from detectron2.utils.memory import retry_if_cuda_oom
 from detectron2.layers import paste_masks_in_image
 
-#import os
-#data_path = os.path.abspath('hyp.scratch.mask.yaml')
-#print(data_path)
-# print(type(data_path))
 
+import os
+data_path = os.path.abspath('hyp.scratch.mask.yaml')
+data_path = data_path.replace("\\", "/")
+
+torch_model = os.path.abspath('tools/yolov7-mask.pt')
+torch_model = torch_model.replace("\\", "/")
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-with open('C:/Users\lupas\Documents\EcoCar\Perception\yolov7/tools/hyp.scratch.mask.yaml') as f:
+with open(data_path) as f:
     hyp = yaml.load(f, Loader=yaml.FullLoader)
-weights = torch.load('C:/Users/lupas/Documents/EcoCar/Perception/yolov7/tools/yolov7-mask.pt')
+weights = torch.load(torch_model)
 model = weights['model']
 model = model.half().to(device)
 _ = model.eval()
 
-image = cv2.imread('C:/Users/lupas/Documents/EcoCar/Perception/yolov7/tools/test6.png')  # 504x378 image
+test_image = os.path.abspath('tools/test6.png')
+test_image = torch_model.replace("\\", "/")
+
+image = cv2.imread(test_image)  # 504x378 image
 image = letterbox(image, 640, stride=64, auto=True)[0]
 image_ = image.copy()
 image = transforms.ToTensor()(image)
