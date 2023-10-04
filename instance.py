@@ -5,7 +5,6 @@ import yaml
 from torchvision import transforms
 import numpy as np
 # import models
-from tools.stuff.tester import times_two
 
 from utils.datasets import letterbox
 from utils.general import non_max_suppression_mask_conf
