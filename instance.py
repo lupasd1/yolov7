@@ -1,3 +1,11 @@
+import os
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+# Apple MPS (Metal Performance Shaders) allows use of GPU for
+# hardware acceleration (over using only CPU) for ML purposes, etc.
+# top 2 lines set environmental variable to allow PyTorch to use CPU
+# when MPS fails because the devs didn't implement some function for it
+# ^^^ comment top 2 lines out if not using MacOS
+
 import matplotlib.pyplot as plt
 import torch
 import cv2
@@ -15,28 +23,29 @@ from detectron2.utils.memory import retry_if_cuda_oom
 from detectron2.layers import paste_masks_in_image
 
 
-import os
-data_path = os.path.abspath('data/hyp.scratch.mask.yaml')
-data_path = data_path.replace("\\", "/")
+data_path = ('./data/hyp.scratch.mask.yaml')
+torch_model = ('./tools/yolov7-mask.pt')
+target_path = ('./tools/test6.png') # image to segment
 
-torch_model = os.path.abspath('tools/yolov7-mask.pt')
-torch_model = torch_model.replace("\\", "/")
+# set device for tensor computations
+device = "cuda:0" if torch.has_cuda else ("mps" if torch.has_mps else "cpu")
+# first check if CUDA (nvidia gpu) available, then MPS (apple gpu), else cpu
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 with open(data_path) as f:
     hyp = yaml.load(f, Loader=yaml.FullLoader)
 weights = torch.load(torch_model)
 model = weights['model']
-model = model.half().to(device)
+model = model.to(torch.float32).to(device) 
+# TODO: investigate if model.to(data_type) and model.to(device) should be called in specific order,
+# whether or not there's a difference
 _ = model.eval()
 
-image = cv2.imread('./tools/test6.png')  # 504x378 image
+image = cv2.imread(target_path)  # 504x378 image
 image = letterbox(image, 640, stride=64, auto=True)[0]
 image_ = image.copy()
 image = transforms.ToTensor()(image)
 image = torch.tensor(np.array([image.numpy()]))
 image = image.to(device)
-image = image.half()
 
 output = model(image)
 
@@ -71,6 +80,8 @@ for one_mask, bbox, cls, conf in zip(pred_masks_np, nbboxes, pred_cls, pred_conf
 
     pnimg[one_mask] = pnimg[one_mask] * 0.5 + np.array(color, dtype=np.uint8) * 0.5
     pnimg = cv2.rectangle(pnimg, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
+
+    # below code draws classifications (e.g. car, person]) and confidence scores (e.g. 0.98, 0.64)
     # label = '%s %.3f' % (names[int(cls)], conf)
     # t_size = cv2.getTextSize(label, 0, fontScale=0.5, thickness=1)[0]
     # c2 = bbox[0] + t_size[0], bbox[1] - t_size[1] - 3
