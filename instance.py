@@ -58,7 +58,7 @@ pooler_scale = model.pooler_scale
 pooler = ROIPooler(output_size=hyp['mask_resolution'], scales=(pooler_scale,), sampling_ratio=1, pooler_type='ROIAlignV2', canonical_level=2)
 
 output, output_mask, output_mask_score, output_ac, output_ab = non_max_suppression_mask_conf(inf_out, attn, bases, pooler, hyp, conf_thres=0.25, iou_thres=0.65, merge=False, mask_iou=None)
-
+print(output_mask[0].shape)
 pred, pred_masks = output[0], output_mask[0]
 base = bases[0]
 bboxes = Boxes(pred[:, :4])
@@ -72,6 +72,21 @@ nimg = nimg.cpu().numpy().astype(np.uint8)
 nimg = cv2.cvtColor(nimg, cv2.COLOR_RGB2BGR)
 nbboxes = bboxes.tensor.detach().cpu().numpy().astype(int)
 pnimg = nimg.copy()
+
+supermask = np.zeros(pred_masks_np.shape + (3,))
+
+for i in range(pred_masks_np.shape[0]):
+    color = [np.random.randint(255), np.random.randint(255), np.random.randint(255)]
+    color = np.array(color, dtype=np.uint8)
+    combined_array = np.stack((pred_masks_np[i] * color[0], pred_masks_np[i] * color[1], pred_masks_np[i] * color[2]), axis=-1)
+    cv2.imshow('Output', combined_array)
+    cv2.waitKey(0)
+    supermask[i] = combined_array
+
+supermask = np.sum(supermask, axis=0, keepdims=True)
+supermask = np.squeeze(supermask)
+cv2.imshow('Output', supermask)
+cv2.waitKey(0)
 
 for one_mask, bbox, cls, conf in zip(pred_masks_np, nbboxes, pred_cls, pred_conf):
     if conf < 0.25:
